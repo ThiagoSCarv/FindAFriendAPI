@@ -1,7 +1,6 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyJwt from '@fastify/jwt';
 import fastifySwagger from '@fastify/swagger';
-import fastifySwaggerUi from '@fastify/swagger-ui';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import fastify from 'fastify';
 import { env } from './env/index.js';
@@ -36,8 +35,6 @@ app.register(scalarApiReference, {
     theme: 'purple',
   },
 });
-
-app.register(fastifySwaggerUi, { routePrefix: '/swagger' });
 
 app.register(fastifyJwt, { secret: env.JWT_SECRET });
 
