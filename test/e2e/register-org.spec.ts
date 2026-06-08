@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { app } from '@/app';
 import { prisma } from '@/lib/prisma';
 import request from 'supertest';
@@ -60,9 +59,10 @@ describe('POST /orgs', () => {
       cep: '01310100',
     };
 
-    await request(app.server).post('/orgs').send(body);
-    const response = await request(app.server).post('/orgs').send(body);
+    const firstResponse = await request(app.server).post('/orgs').send(body);
+    expect(firstResponse.statusCode).toBe(201);
 
+    const response = await request(app.server).post('/orgs').send(body);
     expect(response.statusCode).toBe(409);
   });
 
