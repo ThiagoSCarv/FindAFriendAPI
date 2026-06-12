@@ -12,6 +12,7 @@ export class InMemoryOrgsRepository implements IOrgsRepository {
     const org: Org = {
       id: randomUUID(),
       created_at: new Date(),
+      role: 'ORG',
       ...data,
     };
     this.items.push(org);

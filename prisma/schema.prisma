@@ -6,6 +6,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ORG
+  ADMIN
+}
+
 model Org {
   id            String   @id @default(uuid())
   name          String
@@ -17,6 +22,7 @@ model Org {
   state         String
   address       String
   created_at    DateTime @default(now())
+  role          Role     @default(ORG)
 
   pets Pet[]
 
