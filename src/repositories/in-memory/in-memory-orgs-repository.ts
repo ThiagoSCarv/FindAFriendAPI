@@ -1,5 +1,5 @@
-import type { Org } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import type { Org } from '@prisma/client';
 import type {
   IOrgsRepository,
   OrgCreateInput,
