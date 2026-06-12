@@ -3,6 +3,12 @@ import fastifyJwt from '@fastify/jwt';
 import fastifySwagger from '@fastify/swagger';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import fastify from 'fastify';
+import {
+  hasZodFastifySchemaValidationErrors,
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from 'fastify-type-provider-zod';
 import { ZodError } from 'zod';
 import { env } from './env/index.js';
 import { orgsRoutes } from './http/routes/orgs-routes.js';
@@ -10,6 +16,9 @@ import { InvalidCredentialsError } from './use-cases/errors/invalid-credentials-
 import { OrgAlreadyExistsError } from './use-cases/errors/org-already-exists-error.js';
 
 export const app = fastify({ logger: env.NODE_ENV === 'development' });
+
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
 
 app.register(fastifySwagger, {
   openapi: {
@@ -30,6 +39,7 @@ app.register(fastifySwagger, {
       },
     },
   },
+  transform: jsonSchemaTransform,
 });
 
 app.register(scalarApiReference, {
@@ -49,6 +59,12 @@ app.register(fastifyJwt, {
 app.register(orgsRoutes);
 
 app.setErrorHandler((error, _request, reply) => {
+  if (hasZodFastifySchemaValidationErrors(error)) {
+    return reply.status(400).send({
+      message: 'Validation error.',
+      issues: error.validation,
+    });
+  }
   if (error instanceof ZodError) {
     return reply.status(400).send({
       message: 'Validation error.',

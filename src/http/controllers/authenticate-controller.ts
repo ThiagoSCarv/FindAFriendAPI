@@ -3,16 +3,18 @@ import { z } from 'zod';
 import { env } from '../../env/index.js';
 import { makeAuthenticateUseCase } from '../../use-cases/factories/make-authenticate-use-case.js';
 
-const bodySchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
+export const authenticateBodySchema = z.object({
+  email: z
+    .string({ error: 'O e-mail é obrigatório.' })
+    .email('Informe um e-mail válido.'),
+  password: z.string({ error: 'A senha é obrigatória.' }),
 });
 
 export async function authenticateController(
-  request: FastifyRequest,
+  request: FastifyRequest<{ Body: z.infer<typeof authenticateBodySchema> }>,
   reply: FastifyReply,
 ) {
-  const { email, password } = bodySchema.parse(request.body);
+  const { email, password } = request.body;
 
   const authenticate = makeAuthenticateUseCase();
   const { org } = await authenticate.execute({ email, password });
