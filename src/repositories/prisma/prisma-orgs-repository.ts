@@ -13,4 +13,8 @@ export class PrismaOrgsRepository implements IOrgsRepository {
   async findByEmail(email: string): Promise<Org | null> {
     return prisma.org.findUnique({ where: { email } });
   }
+
+  async findById(id: string): Promise<Org | null> {
+    return prisma.org.findUnique({ where: { id } });
+  }
 }
