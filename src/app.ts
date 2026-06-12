@@ -6,6 +6,7 @@ import fastify from 'fastify';
 import { ZodError } from 'zod';
 import { env } from './env/index.js';
 import { orgsRoutes } from './http/routes/orgs-routes.js';
+import { InvalidCredentialsError } from './use-cases/errors/invalid-credentials-error.js';
 import { OrgAlreadyExistsError } from './use-cases/errors/org-already-exists-error.js';
 
 export const app = fastify({ logger: env.NODE_ENV === 'development' });
@@ -56,6 +57,9 @@ app.setErrorHandler((error, _request, reply) => {
   }
   if (error instanceof OrgAlreadyExistsError) {
     return reply.status(409).send({ message: error.message });
+  }
+  if (error instanceof InvalidCredentialsError) {
+    return reply.status(401).send({ message: error.message });
   }
   return reply.status(500).send({ message: 'Internal server error.' });
 });
