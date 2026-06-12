@@ -3,7 +3,18 @@
 Registro das rotas agrupadas por domínio (ex: `orgs-routes.ts`). Cada grupo é registrado em `app.ts`.
 
 - Uma rota aponta para um controller; o registro fica agrupado por domínio.
-- Toda rota deve ter schema Zod associado (validação + geração automática da doc Swagger/Scalar).
+- Toda rota deve ter schema associado (validação + geração automática da doc Swagger/Scalar).
+- O `schema` da rota traz `tags`/`summary` (doc) e o `body` (schema Zod **exportado pelo
+  controller**); a validação roda via `fastify-type-provider-zod` — ver `controllers/CLAUDE.md`.
+
+```ts
+// src/http/routes/orgs-routes.ts
+app.post(
+  '/orgs',
+  { schema: { tags: ['Orgs'], summary: 'Cadastro de ORG', body: registerOrgBodySchema } },
+  registerOrgController,
+)
+```
 
 ## Orgs
 ```
