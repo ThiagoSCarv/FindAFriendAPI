@@ -2,6 +2,24 @@
 
 Guia de referência para desenvolvimento da API FindAFriend, um sistema de adoção de animais.
 
+Cada parte do sistema tem seu próprio `CLAUDE.md` com as regras específicas daquela camada.
+O Claude Code carrega automaticamente o arquivo da pasta em que você está trabalhando. Use
+este arquivo raiz para a visão geral; consulte o `CLAUDE.md` da pasta para os detalhes:
+
+| Parte do sistema            | Arquivo de regras                       |
+|-----------------------------|------------------------------------------|
+| Banco / entidades / Prisma  | `prisma/CLAUDE.md`                       |
+| Variáveis de ambiente       | `src/env/CLAUDE.md`                      |
+| Camada HTTP / autenticação  | `src/http/CLAUDE.md`                     |
+| Controllers                 | `src/http/controllers/CLAUDE.md`         |
+| Rotas                       | `src/http/routes/CLAUDE.md`              |
+| Use cases                   | `src/use-cases/CLAUDE.md`                |
+| Factories                   | `src/use-cases/factories/CLAUDE.md`      |
+| Erros de domínio            | `src/use-cases/errors/CLAUDE.md`         |
+| Repositórios                | `src/repositories/CLAUDE.md`             |
+| Providers externos          | `src/providers/CLAUDE.md`                |
+| Testes                      | `test/CLAUDE.md`                         |
+
 ---
 
 ## Stack
@@ -33,10 +51,12 @@ src/
     routes/             # Registro de rotas agrupadas por domínio
   use-cases/            # Lógica de negócio isolada (um arquivo por caso de uso)
     factories/          # Simple Factories para instanciar use-cases com suas dependências
+    errors/             # Classes de erro de domínio
   repositories/         # Interfaces e implementações Prisma dos repositórios
     interfaces/         # Contratos (IOrgsRepository, IPetsRepository)
     prisma/             # Implementações concretas com Prisma
     in-memory/          # Implementações in-memory para testes unitários
+  providers/            # Integrações externas (ex: ViaCEP)
   lib/
     prisma.ts           # Instância singleton do PrismaClient
   utils/                # Funções utilitárias reutilizáveis
@@ -51,44 +71,6 @@ test/
   unit/                 # Testes de use-cases com repositórios in-memory
   e2e/                  # Testes de rotas com banco real (Supertest)
 ```
-
----
-
-## Entidades
-
-### Org
-Representa uma organização responsável por animais disponíveis para adoção.
-
-| Campo         | Tipo     | Observações                          |
-|---------------|----------|--------------------------------------|
-| id            | UUID     | Gerado automaticamente               |
-| name          | string   | Nome da organização                  |
-| email         | string   | Único                                |
-| password_hash | string   | Hash bcrypt                          |
-| whatsapp      | string   | Obrigatório — contato com adotantes  |
-| cep           | string   | CEP do endereço                      |
-| city          | string   | Cidade — usada na busca de pets      |
-| state         | string   |                                      |
-| address       | string   | Endereço completo — obrigatório      |
-| created_at    | DateTime |                                      |
-
-### Pet
-Representa um animal disponível para adoção.
-
-| Campo          | Tipo     | Observações                         |
-|----------------|----------|-------------------------------------|
-| id             | UUID     | Gerado automaticamente              |
-| name           | string   |                                     |
-| about          | string   | Descrição do pet                    |
-| age            | enum     | `PUPPY`, `ADULT`, `SENIOR`          |
-| size           | enum     | `SMALL`, `MEDIUM`, `LARGE`          |
-| energy_level   | enum     | `LOW`, `MEDIUM`, `HIGH`             |
-| independence   | enum     | `LOW`, `MEDIUM`, `HIGH`             |
-| environment    | enum     | `SMALL`, `MEDIUM`, `LARGE`          |
-| photos         | string[] |                                     |
-| requirements   | string[] | Requisitos para adoção              |
-| org_id         | UUID     | FK para Org — obrigatório           |
-| created_at     | DateTime |                                     |
 
 ---
 
@@ -118,126 +100,6 @@ Representa um animal disponível para adoção.
 
 ---
 
-## Autenticação
-
-- **Access token**: JWT de curta duração (ex: 10 minutos), enviado no header `Authorization: Bearer <token>`.
-- **Refresh token**: JWT de longa duração (ex: 7 dias), armazenado em cookie `httpOnly` com flag `secure` em produção.
-- **Roles**: campo `role` no payload JWT. Valor padrão: `ORG`. Estrutura preparada para expansão (ex: `ADMIN`).
-- Rotas protegidas usam o middleware `verifyJWT`. Rotas que exigem role específica usam `verifyUserRole('ORG')`.
-
----
-
-## Rotas
-
-### Orgs
-```
-POST   /orgs          → Cadastro de ORG
-POST   /sessions      → Login de ORG
-PATCH  /token/refresh → Refresh de access token
-```
-
-### Pets
-```
-POST  /pets            → Cadastro de pet (autenticado)
-GET   /pets            → Listagem por cidade + filtros opcionais (?city=&age=&size=...)
-GET   /pets/:petId     → Detalhes de um pet
-```
-
----
-
-## Variáveis de Ambiente
-
-Todas as variáveis devem ser validadas no startup via Zod em `src/env/index.ts`. A aplicação não deve iniciar com `.env` inválido.
-
-```env
-NODE_ENV=development       # development | test | production
-PORT=3333
-DATABASE_URL=              # PostgreSQL connection string
-JWT_SECRET=                # Secret para assinar tokens
-```
-
----
-
-## Padrões de Código
-
-### Controllers
-- Responsabilidade única: receber request, chamar use-case, retornar response.
-- Não contêm lógica de negócio.
-- Erros de domínio são capturados e mapeados para status HTTP adequado.
-
-### Use Cases
-- Contêm toda a lógica de negócio.
-- Recebem repositórios por injeção de dependência (facilitando testes).
-- Lançam erros customizados com classes próprias (ex: `ResourceNotFoundError`, `InvalidCredentialsError`).
-
-### Repositórios
-- Toda interação com o banco passa pelo repositório.
-- Interfaces definem o contrato; implementações Prisma e in-memory são separadas.
-- Use-cases dependem apenas das interfaces.
-
-### Simple Factory
-
-Cada use-case possui uma factory correspondente em `src/use-cases/factories/`. A factory é responsável por instanciar o use-case com todas as suas dependências (repositórios Prisma), centralizando o processo de criação e mantendo os controllers livres de qualquer conhecimento sobre infraestrutura.
-
-**Convenção de nomenclatura**: `make-<nome-do-use-case>.ts`
-
-```ts
-// src/use-cases/factories/make-register-pet-use-case.ts
-import { PrismaOrgsRepository } from '@/repositories/prisma/prisma-orgs-repository'
-import { PrismaPetsRepository } from '@/repositories/prisma/prisma-pets-repository'
-import { RegisterPetUseCase } from '@/use-cases/register-pet'
-
-export function makeRegisterPetUseCase() {
-  const petsRepository = new PrismaPetsRepository()
-  const orgsRepository = new PrismaOrgsRepository()
-  return new RegisterPetUseCase(petsRepository, orgsRepository)
-}
-```
-
-```ts
-// src/http/controllers/register-pet-controller.ts
-export async function registerPetController(request: FastifyRequest, reply: FastifyReply) {
-  // O controller não conhece repositórios — apenas chama a factory
-  const registerPet = makeRegisterPetUseCase()
-  await registerPet.execute({ ... })
-}
-```
-
-**Regras:**
-- Controllers **sempre** obtêm o use-case via factory — nunca instanciam repositórios diretamente.
-- Factories **sempre** usam as implementações Prisma (produção). Testes unitários instanciam o use-case manualmente com repositórios in-memory, sem usar a factory.
-- Uma factory por use-case — sem factories genéricas ou compartilhadas.
-
----
-
-### Erros
-- Criar classes de erro em `src/use-cases/errors/`.
-- O handler global de erros em `app.ts` mapeia erros conhecidos para respostas HTTP.
-
-### Validação
-- Toda entrada de dados (body, query, params) validada com Zod no nível do controller/rota.
-- Schemas Zod reutilizáveis podem ser extraídos para `src/http/schemas/`.
-
----
-
-## Testes
-
-### Unitários (`test/unit/`)
-- Testam use-cases isoladamente com repositórios in-memory.
-- Rápidos, sem dependência de banco ou rede.
-- Comando: `npx vitest run`
-
-### E2E (`test/e2e/`)
-- Testam rotas completas com Supertest contra um banco de teste real.
-- Cada teste deve criar e limpar seus próprios dados.
-- Comando: `npx vitest run --project e2e` (ou configuração equivalente no `vitest.config.ts`)
-
-### Cobertura
-- Comando: `npx vitest run --coverage`
-- Provider: `@vitest/coverage-v8`
-
----
-
 ## Scripts (`package.json`)
 
 ```json
@@ -262,3 +124,11 @@ export async function registerPetController(request: FastifyRequest, reply: Fast
 - Swagger gerado automaticamente via `@fastify/swagger`.
 - UI servida pelo Scalar em `/docs`.
 - Todas as rotas devem ter schema Zod associado para geração automática dos tipos na doc.
+
+---
+
+## Git
+
+- **Nunca commitar** nenhum arquivo `CLAUDE.md` (em qualquer diretório) — todos são ignorados pelo `.gitignore`.
+- **Nunca commitar** arquivos de skill do Superpowers (`.claude/`).
+- Commits **não** devem incluir co-author do Claude.
