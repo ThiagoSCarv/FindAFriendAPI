@@ -12,8 +12,10 @@ import {
 import { ZodError } from 'zod';
 import { env } from './env/index.js';
 import { orgsRoutes } from './http/routes/orgs-routes.js';
+import { petsRoutes } from './http/routes/pets-routes.js';
 import { InvalidCredentialsError } from './use-cases/errors/invalid-credentials-error.js';
 import { OrgAlreadyExistsError } from './use-cases/errors/org-already-exists-error.js';
+import { ResourceNotFoundError } from './use-cases/errors/resource-not-found-error.js';
 
 export const app = fastify({ logger: env.NODE_ENV === 'development' });
 
@@ -57,6 +59,7 @@ app.register(fastifyJwt, {
   sign: { expiresIn: '10m' },
 });
 app.register(orgsRoutes);
+app.register(petsRoutes);
 
 app.setErrorHandler((error, _request, reply) => {
   if (hasZodFastifySchemaValidationErrors(error)) {
@@ -76,6 +79,9 @@ app.setErrorHandler((error, _request, reply) => {
   }
   if (error instanceof InvalidCredentialsError) {
     return reply.status(401).send({ message: error.message });
+  }
+  if (error instanceof ResourceNotFoundError) {
+    return reply.status(404).send({ message: error.message });
   }
   return reply.status(500).send({ message: 'Internal server error.' });
 });
