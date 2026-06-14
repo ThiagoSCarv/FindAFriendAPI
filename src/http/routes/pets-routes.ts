@@ -1,6 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
+  getPetDetailsController,
+  getPetDetailsParamsSchema,
+} from '../controllers/get-pet-details-controller.js';
+import {
   registerPetBodySchema,
   registerPetController,
 } from '../controllers/register-pet-controller.js';
@@ -36,5 +40,17 @@ export async function petsRoutes(app: FastifyInstance) {
       },
     },
     searchPetsByCityController,
+  );
+
+  app.withTypeProvider<ZodTypeProvider>().get(
+    '/pets/:petId',
+    {
+      schema: {
+        tags: ['Pets'],
+        summary: 'Detalhes de um pet',
+        params: getPetDetailsParamsSchema,
+      },
+    },
+    getPetDetailsController,
   );
 }
