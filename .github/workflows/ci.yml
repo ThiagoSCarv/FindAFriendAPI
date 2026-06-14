@@ -29,6 +29,10 @@ jobs:
 
   typecheck:
     runs-on: ubuntu-latest
+    env:
+      # prisma.config.ts resolve env('DATABASE_URL') ao carregar; `prisma generate`
+      # não conecta no banco, só precisa que a variável exista. Valor dummy basta.
+      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/prisma
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -44,6 +48,10 @@ jobs:
 
   unit:
     runs-on: ubuntu-latest
+    env:
+      # prisma.config.ts resolve env('DATABASE_URL') ao carregar; `prisma generate`
+      # não conecta no banco, só precisa que a variável exista. Valor dummy basta.
+      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/prisma
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
